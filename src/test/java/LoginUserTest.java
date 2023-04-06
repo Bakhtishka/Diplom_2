@@ -37,16 +37,24 @@ public class LoginUserTest {
         }
     }
 
-    @Step("Регистрация нового пользователя")
-    public void registrationUser() {
+
+    @Step("POST запрос на ручку /api/auth/login авторизация пользователя")
+    public Response loginUserWithIncorrectPasswordAndEmail() {
+        User json = new User(email, password);
+        return given()
+                .header("Content-type", "application/json")
+                .body(json)
+                .post("/api/auth/login");
+    }
+
+    @Test
+    @DisplayName("Логин под существующим пользователем")
+    @Description("При успешной авторизации статус и тело ответа будут соответствовать ТЗ")
+    public void test() {
         given()
                 .header("Content-type", "application/json")
                 .body(user)
                 .post("/api/auth/register");
-    }
-
-    @Step("Авторизация под существующим пользователем, проверка тела ответа")
-    public void loginUser() {
         given()
                 .header("Content-type", "application/json")
                 .body(user)
@@ -58,30 +66,7 @@ public class LoginUserTest {
                 .body("refreshToken", notNullValue())
                 .body("user.email", equalTo(email))
                 .body("user.name", equalTo(name));
-    }
 
-    @Step("POST запрос на ручку /api/auth/login авторизация пользователя")
-    public Response loginUserWithIncorrectPasswordAndEmail() {
-        User json = new User(email, password);
-        return given()
-                .header("Content-type", "application/json")
-                .body(json)
-                .post("/api/auth/login");
-    }
-
-    @Step("Проверка кода статуса при логине с неверным логином и паролем")
-    public void checkStatusCodeWhenLoginWithIncorrectData(Response response) {
-        response.then().statusCode(401)
-                .body("success", equalTo(false))
-                .body("message", equalTo("email or password are incorrect"));
-    }
-
-    @Test
-    @DisplayName("Логин под существующим пользователем")
-    @Description("При успешной авторизации статус и тело ответа будут соответствовать ТЗ")
-    public void test() {
-        registrationUser();
-        loginUser();
     }
 
     @Test
@@ -89,6 +74,8 @@ public class LoginUserTest {
     @Description("Должна вернуться ошибка")
     public void shouldWhenLoginIncorrectUserReturnError() {
         Response response = loginUserWithIncorrectPasswordAndEmail();
-        checkStatusCodeWhenLoginWithIncorrectData(response);
+        response.then().statusCode(401)
+                .body("success", equalTo(false))
+                .body("message", equalTo("email or password are incorrect"));
     }
 }

@@ -11,12 +11,11 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 public class ChangeUsersDataTest {
-    Faker faker = new Faker();
-    String email = faker.internet().emailAddress();
-    String password = faker.internet().password();
-    String name = faker.name().firstName();
-    User user = new User(email, password, name);
-    User user1 = new User(email, name);
+    Faker johnFaker = new Faker();
+    Faker jacobFaker = new Faker();
+
+    User user = new User(johnFaker.internet().emailAddress(), johnFaker.internet().password(), johnFaker.name().firstName());
+    User jacob = new User(jacobFaker.internet().emailAddress(), jacobFaker.internet().password(), jacobFaker.name().firstName());
     String authToken;
 
     @Before
@@ -59,38 +58,49 @@ public class ChangeUsersDataTest {
         authToken = accessToken.substring(7);
     }
 
-    @Step("PATCH запрос на ручку /api/auth/user с авторизацией и измененными полями")
-    public void checkStatusCodeWhenChangeUserDataWithAuthorization() {
+    @Test
+    @DisplayName("Изменение данных пользователя с авторизацией")
+    @Description("При смене данных авторизованного пользователя, вернётся статус 200")
+    public void changeUserDataWithAuthorization() {
+        registrationUser(user);
         loginUser(user);
-        given().auth().oauth2(authToken)
-                .body(user1)
-                .patch("/api/auth/user").then().statusCode(200)
-                .assertThat().body("user.email", equalTo(user1.getEmail()));
+        given().auth()
+                .oauth2(authToken)
+                .body(jacob)
+                .contentType("application/json")
+                .patch("/api/auth/user")
+                .then()
+                .statusCode(200)
+                .assertThat()
+                .body("user.email", equalTo(jacob.getEmail()));
+        user.setEmail(jacob.getEmail());
+        user.setName(jacob.getName());
     }
 
-
-    @Step("PATCH запрос на ручку /api/auth/user без авторизации с измененными полями")
-    public void checkStatusCodeWhenChangeUserDataWithoutAuthorization() {
+    @Test
+    @DisplayName("Изменение данных пользователя без авторизации")
+    @Description("Неавторизованный пользователь не сможет менять данные, вернется ошибка")
+    public void shouldReturnErrorWhenChangeUserDataWithoutAuthorization() {
         registrationUser(user);
         given()
                 .header("Content-type", "application/json")
-                .body(user1)
+                .body(jacob)
                 .patch("/api/auth/user")
                 .then().statusCode(401);
-    }
-
-    @Step("PATCH запрос на ручку /api/auth/user без авторизации с измененными полями")
-    public void checkBodyWhenChangeUserDataWithoutAuthorization() {
         given()
                 .header("Content-type", "application/json")
-                .body(user1)
+                .body(jacob)
                 .patch("/api/auth/user")
                 .then().assertThat().body("success", equalTo(false))
                 .body("message", equalTo("You should be authorised"));
+
     }
 
-    @Step("PATCH запрос на ручку /api/auth/user с авторизацией и почтой, которая уже есть")
-    public void checkStatusCodeWhenRequestWithExistUserEmail() {
+    @Test
+    @DisplayName("Изменеие данных пользователя с авторизацией")
+    @Description("PATCH запрос авторизованного пользователя с почтой, которая уже используется, " +
+            "при запросе вернётся ошибка.")
+    public void shouldReturnErrorWhenChangeUserNameWithAuthorization() {
         registrationUser(user);
         final User sobaken = new User("sobaka@met.ru", "kolbaska", "Spike");
         registrationUser(sobaken);
@@ -101,10 +111,6 @@ public class ChangeUsersDataTest {
                 .patch("/api/auth/user")
                 .then().statusCode(403);
         given().auth().oauth2(authToken).delete("/api/auth/user");
-    }
-
-    @Step("PATCH запрос на ручку /api/auth/user с авторизацией и почтой, которая уже есть")
-    public void checkBodyWhenRequestWithExistUserEmail() {
         final User koshken = new User("koshka@myshka.ru", "Holly", "Thom");
         registrationUser(koshken);
         loginUser(koshken);
@@ -116,31 +122,5 @@ public class ChangeUsersDataTest {
                 .body("success", equalTo(false))
                 .body("message", equalTo("User with such email already exists"));
         given().auth().oauth2(authToken).delete("/api/auth/user");
-    }
-
-    @Test
-    @DisplayName("Изменение данных пользователя с авторизацией")
-    @Description("При смене данных авторизованного пользователя, вернётся статус 200")
-    public void changeUserDataWithAuthorization() {
-        registrationUser(user);
-        loginUser(user);
-        checkStatusCodeWhenChangeUserDataWithAuthorization();
-    }
-
-    @Test
-    @DisplayName("Изменение данных пользователя без авторизации")
-    @Description("Неавторизованный пользователь не сможет менять данные, вернется ошибка")
-    public void shouldReturnErrorWhenChangeUserDataWithoutAuthorization() {
-        checkStatusCodeWhenChangeUserDataWithoutAuthorization();
-        checkBodyWhenChangeUserDataWithoutAuthorization();
-
-    }
-
-    @Test
-    @DisplayName("Изменеие данных пользователя с авторизацией")
-    @Description("PATCH запрос авторизованного пользователя с почтой, которая уже используется")
-    public void shouldReturnErrorWhenChangeUserNameWithAuthorization() {
-        checkStatusCodeWhenRequestWithExistUserEmail();
-        checkBodyWhenRequestWithExistUserEmail();
     }
 }

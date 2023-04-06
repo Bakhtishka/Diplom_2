@@ -1,5 +1,4 @@
 import io.qameta.allure.Description;
-import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.RestAssured;
 import org.junit.After;
@@ -32,16 +31,14 @@ public class GetOrdersFromSpecificUserTest {
         }
     }
 
-    @Step("Создаём пользователя")
-    public void createUser(User user) {
+    @Test
+    @DisplayName("Получить заказ авторизованного пользователя")
+    @Description("Регистрируем, авторизуемся, создаем заказ, получаем заказ с проверкой статуса и тела ответа")
+    public void getUserOrdersWithLogin() {
         given()
                 .header("Content-type", "application/json")
                 .body(user)
                 .post("/api/auth/register");
-    }
-
-    @Step("Авторизуемся")
-    public void loginUser(User user) {
         String accessToken = given()
                 .header("Content-type", "application/json")
                 .body(user)
@@ -51,42 +48,28 @@ public class GetOrdersFromSpecificUserTest {
                 .body()
                 .path("accessToken").toString();
         authToken = accessToken.substring(7);
-    }
-
-    @Step("Создаем заказ")
-    public void createOrder() {
         given()
                 .auth().oauth2(authToken)
                 .header("Content-type", "application/json")
                 .body(json)
                 .post("/api/orders");
-    }
-
-    @Step("GET запрос на ручку /api/orders, проверяем статус ответа авторизованного пользователя")
-    public void checkStatusCodeWhenGetUserOrdersWithLogin() {
+        given().auth().oauth2(authToken)
+                .get("/api/orders").then().assertThat()
+                .body("success", equalTo(true));
         given()
                 .auth().oauth2(authToken)
                 .get("/api/orders")
                 .then().statusCode(200);
     }
 
-    @Step("GET запрос на ручку /api/orders, проверяем тело ответа авторизванного пользователя")
-    public void checkResponseBodyWhenGetUserOrdersWithLogin() {
-        given().auth().oauth2(authToken)
-                .get("/api/orders").then().assertThat()
-                .body("success", equalTo(true));
-    }
-
-    @Step("GET запрос на ручку /api/orders без авторизации, проверяем статус ответа")
-    public void checkStatusCodeWhenGetUserOrdersWithoutLogin() {
+    @Test
+    @DisplayName("Получить заказ не авторизованного пользователя")
+    @Description("Просим выдать заказ без авторизации пользователя, с проверкой статуса и тела ответа")
+    public void getUserOrdersWithoutLogin() {
         given()
                 .header("Content-type", "application/json")
                 .body(json)
                 .get("/api/orders").then().statusCode(401);
-    }
-
-    @Step("GET запрос на ручку /api/orders без авторизации, проверяем тело ответа")
-    public void checkBodyWhenGetUserOrdersWithoutLogin() {
         given()
                 .header("Content-type", "application/json")
                 .body(json)
@@ -94,24 +77,5 @@ public class GetOrdersFromSpecificUserTest {
                 .then().assertThat()
                 .body("success", equalTo(false))
                 .body("message", equalTo("You should be authorised"));
-    }
-
-    @Test
-    @DisplayName("Получить заказ авторизованного пользователя")
-    @Description("Регистрируем, авторизуемся, создаем заказ, получаем заказ с проверкой статуса и тела ответа")
-    public void getUserOrdersWithLogin() {
-        createUser(user);
-        loginUser(user);
-        createOrder();
-        checkResponseBodyWhenGetUserOrdersWithLogin();
-        checkStatusCodeWhenGetUserOrdersWithLogin();
-    }
-
-    @Test
-    @DisplayName("Получить заказ не авторизованного пользователя")
-    @Description("Просим выдать заказ без авторизации пользователя, с проверкой статуса и тела ответа")
-    public void getUserOrdersWithoutLogin() {
-        checkStatusCodeWhenGetUserOrdersWithoutLogin();
-        checkBodyWhenGetUserOrdersWithoutLogin();
     }
 }
