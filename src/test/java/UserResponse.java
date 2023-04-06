@@ -1,13 +1,27 @@
-    public class UserResponse {
-        Boolean success;
-        String accessToken;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-        public UserResponse() {
-        }
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class UserResponse {
+    Boolean success;
+    String accessToken;
 
-        public UserResponse(Boolean success, String accessToken) {
-            this.success = success;
-            this.accessToken = accessToken;
-        }
+    public UserResponse() {
     }
+
+    public Boolean getSuccess() {
+        return success;
+    }
+
+    public void setSuccess(Boolean success) {
+        this.success = success;
+    }
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+}
 

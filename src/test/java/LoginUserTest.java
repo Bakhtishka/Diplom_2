@@ -50,7 +50,7 @@ public class LoginUserTest {
     @Test
     @DisplayName("Логин под существующим пользователем")
     @Description("При успешной авторизации статус и тело ответа будут соответствовать ТЗ")
-    public void test() {
+    public void shouldReturnCorrectStatusCodeAndBody() {
         given()
                 .header("Content-type", "application/json")
                 .body(user)
